@@ -1,6 +1,6 @@
 # sshmgr
 
-macOS 下的命令行 SSH 管理工具
+macOS 的命令行 SSH 管理工具
 **局域网里有一堆 Mac？忘 IP，记不住密码？用这个直接 ssh。**
 
 ---
@@ -30,19 +30,16 @@ macOS 下的命令行 SSH 管理工具
 | ------------------ | ------------------------------- |
 | `add/list/show/rm` | 自己维护一份 SSH CMDB                 |
 | 自动解析 hostname      | IP 变了也能直接连                      |
-| Keychain 管密码       | 随时复制密码                  |
+| Keychain 掌控密码       | 随时复制密码                  |
 | `ssh <name>`       | 一条命令就连                          |
-| 记历史                | 每次连接结束时间，时长，出口吗                 |
+| 记历史                | 每次连接结束时间，时长，出口码                 |
 | `users` 统计         | 哪台机子最常连，一眼看全局                   |
 | Discover           | Bonjour 探测 `_ssh._tcp` 找局域网的新机器 |
 | Probe              | 过滤出“能连 / 要密码 / 拒绝 / 挂了 / 报错”    |
 | Ping all           | 批量检查 ssh 端口，顺便更新 last_ip        |
 | SQLite 存库          | 默认 `~/.config/sshmgr/sshmgr.db` |
 
-**不用记 IP，不用找密码，也不用找设备。**
-
 ---
-
 
 ## Install / 安装
 
@@ -59,7 +56,7 @@ go build -o sshmgr
 
 ## Quickstart / 快速开始
 
-添加一台 Mac（推荐 `.local`）
+添加一台 Mac（host推荐 `.local`）
 
 ```
 ./sshmgr add <name> --user <user> --host <host>
@@ -71,10 +68,10 @@ go build -o sshmgr
 ./sshmgr ssh <name>
 ```
 
-找所有广播 ssh 的机器：
+找所有广播 ssh 的机器并测试可连接度：
 
 ```
-./sshmgr discover --add --user <your_user>
+./sshmgr discover --probe --user <user> --only connectable
 ```
 
 查看统计：
