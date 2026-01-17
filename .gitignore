@@ -1,0 +1,15 @@
+# binaries
+sshmgr
+*.exe
+
+# go build cache (optional)
+*.test
+
+# macos
+.DS_Store
+
+# local/dev artifacts
+*.db
+*.sqlite
+*.sqlite3
+dist/
