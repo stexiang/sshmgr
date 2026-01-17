@@ -92,5 +92,5 @@ Usage:
 	rootCmd.Version = fmt.Sprintf("%s\nversion=%s\nauthor=%s\n", banner, version, author)
 	rootCmd.SetVersionTemplate("{{.Version}}")
 
-	rootCmd.AddCommand(addCmd, listCmd, showCmd, rmCmd, checkCmd, sshCmd, usersCmd, historyCmd, passCmd, discoverCmd, pingCmd)
+	rootCmd.AddCommand(addCmd, listCmd, showCmd, rmCmd, checkCmd, sshCmd, usersCmd, historyCmd, passCmd, discoverCmd, pingCmd, stevenCmd)
 }
