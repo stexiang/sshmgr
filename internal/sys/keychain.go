@@ -1,7 +1,6 @@
 package sys
 
 import (
-	"bytes"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -29,13 +28,11 @@ func KeychainGet(name, user string) (string, error) {
 		"-s", service(name),
 		"-w",
 	)
-	var b bytes.Buffer
-	cmd.Stdout = &b
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("keychain get failed: %v: %s", err, strings.TrimSpace(string(out)))
 	}
-	return strings.TrimRight(b.String(), "\n"), nil
+	return strings.TrimRight(string(out), "\n"), nil
 }
 
 func KeychainDelete(name, user string) error {
