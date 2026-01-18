@@ -1,52 +1,52 @@
 # sshmgr
 
-macOS 的命令行 SSH 管理工具
-**局域网里有一堆 Mac？忘 IP，记不住密码？用这个直接 ssh。**
+A macOS CLI tool to manage SSH targets on your local network.
+
+---
+
+## Requirements
+- macOS
+- Remote Login (SSH) enabled on target machines
+- `ssh`, `dns-sd`, `pbcopy`, and `security` available (all built-in on macOS)
+- Bonjour/mDNS enabled on the LAN for discovery
+
+---
+
+## Why sshmgr?
+If you connect to Macs in the same LAN, IP addresses may change.  
+`sshmgr` recommends using stable hostnames (e.g. `Mac-mini.local`). When the IP changes, you can still connect immediately because SSH uses the hostname, while sshmgr resolves and updates the last known IP for display.
 
 ---
 
 ## Bug Bounty
 
-如果你在使用过程中找到了漏洞，请提交到sxiang36@outlook.com。（没有奖赏😂）
+If you find a bug, email me at
+sxiang36@outlook.com
+(There is no bounty😭✌️)
 
 ---
 
-## 为啥造这个工具
+## Features
 
-学校里很多 Mac：
+- Host inventory: `add`, `list`, `show`, `rm`
+- IP change hint: `check` and pre-SSH resolution
+- One command to SSH: `sshmgr ssh <name>` (still connects via hostname)
+- Passwords stored in **macOS Keychain**; copy to clipboard when needed
+- Connection logs and stats: `history`, `users`
+- LAN discovery via Bonjour `_ssh._tcp`: `discover`
+- Enterprise-friendly filtering: `discover --probe` to classify `OK/AUTH/DENY/DOWN/ERR`
+- Health check: `ping` (single host or all)
 
-* IP 一天一个样
-* 每次连都要找密码
-* 想知道最近连哪个最多也麻烦
-* 最主要还是想连同学整蛊
-
-于是我做了这个工具，从只支持 add/ssh，一路加到现在这样
-
----
-
-## Features / 能干啥
-
-| 功能                 | 解释                              |
-| ------------------ | ------------------------------- |
-| `add/list/show/rm` | 自己维护一份 SSH CMDB                 |
-| 自动解析 hostname      | IP 变了也能直接连                      |
-| Keychain 掌控密码       | 随时复制密码                  |
-| `ssh <name>`       | 一条命令就连                          |
-| 记历史                | 每次连接结束时间，时长，出口码                 |
-| `users` 统计         | 哪台机子最常连，一眼看全局                   |
-| Discover           | Bonjour 探测 `_ssh._tcp` 找局域网的新机器 |
-| Probe              | 过滤出“能连 / 要密码 / 拒绝 / 挂了 / 报错”    |
-| Ping all           | 批量检查 ssh 端口，顺便更新 last_ip        |
-| SQLite 存库          | 默认 `~/.config/sshmgr/sshmgr.db` |
+Discovery is based on Bonjour/mDNS service browsing of `_ssh._tcp` advertisements.
 
 ---
 
-## Install / 安装
+## Installation
 
-依赖 Go：
+Requires Go:
 
 ```
-git clone <your repo>
+git clone https://github.com/stexiang/sshmgr.git
 cd sshmgr
 go mod tidy
 go build -o sshmgr
@@ -54,27 +54,35 @@ go build -o sshmgr
 
 ---
 
-## Quickstart / 快速开始
+## Storage 
 
-添加一台 Mac（host推荐 `.local`）
+- SQLite database (default):
+  `~/.config/sshmgr/sshmgr.db`
+- Passwords:
+  Stored securely in macOS Keychain (never written to db)
+
+
+## Quickstart
+
+Add a Mac（Host recommend `.local`）
 
 ```
 ./sshmgr add <name> --user <user> --host <host>
 ```
 
-一键连：
+Connect：
 
 ```
 ./sshmgr ssh <name>
 ```
 
-找所有广播 ssh 的机器并测试可连接度：
+Discover all hosts broadcasting SSH services and test their connectivity：
 
 ```
 ./sshmgr discover --probe --user <user> --only connectable
 ```
 
-查看统计：
+View statistics：
 
 ```
 ./sshmgr users
@@ -82,7 +90,7 @@ go build -o sshmgr
 
 ---
 
-## 常用命令
+## Command Sheet
 
 ```
 ./sshmgr add <name> --user <user> --host <host>
@@ -93,7 +101,7 @@ go build -o sshmgr
 ./sshmgr check <name>
 ```
 
-密码
+Password
 
 ```
 ./sshmgr pass set <name>
@@ -101,20 +109,20 @@ go build -o sshmgr
 ./sshmgr pass clear <name>
 ```
 
-历史
+History/Users
 
 ```
 ./sshmgr users
 ./sshmgr history [--name <name>] [--limit <n>]
 ```
 
-发现
+Discover
 
 ```
 ./sshmgr discover [--probe] [--only connectable] [--add]
 ```
 
-探测
+Ping
 
 ```
 ./sshmgr ping all [--timeout S] [--concurrency N] [--strict]
@@ -129,7 +137,7 @@ MIT
 
 ---
 
-## 最后
+## Last
 
-没最后了，欢迎加PR。
+You are welcomed to create PRs😋
 
