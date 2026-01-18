@@ -11,7 +11,7 @@ import (
 	"golang.org/x/term"
 )
 
-const stevenURL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1"
+const stevenURL = "https://www.bilibili.com/video/BV1GJ411x7h7/?spm_id_from=333.337.search-card.all.click"
 
 var stevenCmd = &cobra.Command{
 	Use:    "steven",
