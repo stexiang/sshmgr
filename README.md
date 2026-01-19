@@ -36,6 +36,7 @@ sxiang36@outlook.com
 - LAN discovery via Bonjour `_ssh._tcp`: `discover`
 - Enterprise-friendly filtering: `discover --probe` to classify `OK/AUTH/DENY/DOWN/ERR`
 - Health check: `ping` (single host or all)
+- Subnet scanner + fingerprint identity (Works in school campus networks that block Bonjour & ARP)
 
 Discovery is based on Bonjour/mDNS service browsing of `_ssh._tcp` advertisements.
 
@@ -127,6 +128,12 @@ Ping
 ```
 ./sshmgr ping all [--timeout S] [--concurrency N] [--strict]
 ./sshmgr ping <name> [--timeout S] [--strict]
+```
+
+Scan
+
+```
+./sshmgr scan <subnet> [--timeout 2s] [--concurrency 64]
 ```
 
 ---
