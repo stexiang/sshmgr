@@ -152,7 +152,7 @@ func runPing(rows []pingRow, timeout time.Duration, conc int) []pingResult {
 func pingOne(h pingRow, timeout time.Duration) pingResult {
 	res := pingResult{Name: h.Name, Host: h.Host, Port: h.Port, ST: "ERR"}
 
-	// 1) resolve
+	// resolve
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	ip, err := netx.ResolveHost(ctx, h.Host)
 	cancel()
