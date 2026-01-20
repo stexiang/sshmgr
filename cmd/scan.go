@@ -13,7 +13,6 @@ import (
 	"sshmgr/internal/sshutil"
 )
 
-
 var (
 	scanTimeout     time.Duration
 	scanConcurrency int
@@ -29,7 +28,7 @@ func init() {
 
 var scanCmd = &cobra.Command{
 	Use:   "scan <subnet>",
-	Short: "Scan subnet, detect SSH hosts, extract names and fingerprint",
+	Short: "Scan subnet and detect SSH services",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ips, err := expandSubnet(args[0])
@@ -39,9 +38,10 @@ var scanCmd = &cobra.Command{
 
 		fmt.Printf("Scanning %d hosts ...\n", len(ips))
 
-		ch := make(chan string)
-		var wg sync.WaitGroup
 		sem := make(chan struct{}, scanConcurrency)
+		out := make(chan string)
+
+		var wg sync.WaitGroup
 
 		for _, ip := range ips {
 			ip := ip
@@ -52,46 +52,43 @@ var scanCmd = &cobra.Command{
 				sem <- struct{}{}
 				defer func() { <-sem }()
 
-				// Step 1: banner probe
-				banner, berr := netutil.SSHBanner(ip, scanTimeout)
-				if berr != nil || banner == "" {
+				// 1. SSH banner probe
+				banner, err := netutil.SSHBanner(ip, scanTimeout)
+				if err != nil || banner == "" {
 					return
 				}
 
 				hostname := netutil.ExtractHostname(banner)
 
-				// Step 2: reverse DNS fallback
+				// 2. reverse DNS fallback
 				if hostname == "" {
 					if ptr, _ := netutil.ReverseLookup(ip); ptr != "" {
 						hostname = ptr
 					}
 				}
 
-				// Step 3: remote hostname via SSH
+				// 3. remote hostname via ssh
 				if hostname == "" && scanUser != "" {
-					if host, _ := sshutil.RemoteHostname(scanUser, ip); host != "" {
-						hostname = host
+					if h, _ := sshutil.RemoteHostname(scanUser, ip); h != "" {
+						hostname = h
 					}
 				}
-
-				// Step 4: fingerprint identity
-				fprint, _ := sshutil.Fingerprint(ip)
 
 				if hostname == "" {
 					hostname = "(unknown)"
 				}
 
-				ch <- fmt.Sprintf("%s  %s  %s", ip, hostname, fprint[:12]) // short fingerprint
+				out <- fmt.Sprintf("%s  %s", ip, hostname)
 			}()
 		}
 
 		go func() {
 			wg.Wait()
-			close(ch)
+			close(out)
 		}()
 
 		found := 0
-		for line := range ch {
+		for line := range out {
 			fmt.Println(line)
 			found++
 		}
@@ -100,27 +97,25 @@ var scanCmd = &cobra.Command{
 		return nil
 	},
 }
-// expandSubnet takes CIDR like 10.203.9.0/24 and returns all host IPs.
+
+// expandSubnet expands CIDR like 10.203.9.0/24 into usable host IPs.
 func expandSubnet(cidr string) ([]string, error) {
 	_, ipnet, err := net.ParseCIDR(cidr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid subnet: %w", err)
 	}
 
-	var ips []string
-
-	// network:   first IP
-	// broadcast: last IP
-	network := binary.BigEndian.Uint32(ipnet.IP.To4())
+	base := binary.BigEndian.Uint32(ipnet.IP.To4())
 	mask := binary.BigEndian.Uint32(net.IP(ipnet.Mask).To4())
-	start := network & mask
+
+	start := base & mask
 	end := start | ^mask
 
-	// iterate usable host range (skip network + broadcast)
-	for ip := start + 1; ip < end; ip++ {
-		b := make([]byte, 4)
-		binary.BigEndian.PutUint32(b, ip)
-		ips = append(ips, net.IP(b).String())
+	var ips []string
+	for i := start + 1; i < end; i++ {
+		var b [4]byte
+		binary.BigEndian.PutUint32(b[:], i)
+		ips = append(ips, net.IP(b[:]).String())
 	}
 
 	return ips, nil
