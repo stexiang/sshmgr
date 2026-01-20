@@ -8,7 +8,7 @@ A macOS CLI tool to manage SSH targets on your local network.
 - macOS
 - Remote Login (SSH) enabled on target machines
 - `ssh`, `dns-sd`, `pbcopy`, and `security` available (all built-in on macOS)
-- Bonjour/mDNS enabled on the LAN for discovery
+- Bonjour/mDNS enabled on the LAN for discovery(optional, for discovery)
 
 ---
 
@@ -22,7 +22,7 @@ If you connect to Macs in the same LAN, IP addresses may change.
 
 If you find a bug, email me at
 sxiang36@outlook.com
-(There is no bounty😭✌️)
+(There is no bounty :( )
 
 ---
 
@@ -36,9 +36,11 @@ sxiang36@outlook.com
 - LAN discovery via Bonjour `_ssh._tcp`: `discover`
 - Enterprise-friendly filtering: `discover --probe` to classify `OK/AUTH/DENY/DOWN/ERR`
 - Health check: `ping` (single host or all)
-- Subnet scanner + fingerprint identity (Works in school campus networks that block Bonjour & ARP)
+- Subnet scanner for SSH services (Works in school campus networks that block Bonjour and ARP)
 
-Discovery is based on Bonjour/mDNS service browsing of `_ssh._tcp` advertisements.
+Discovery is based on Bonjour/mDNS service browsing of `_ssh._tcp`.
+In restricted networks (e.g. campus or enterprise LANs), sshmgr also provides
+an active subnet scanner to detect SSH services without relying on mDNS.
 
 ---
 
@@ -46,7 +48,7 @@ Discovery is based on Bonjour/mDNS service browsing of `_ssh._tcp` advertisement
 
 Requires Go:
 
-```
+```bash
 git clone https://github.com/stexiang/sshmgr.git
 cd sshmgr
 go mod tidy
@@ -67,25 +69,25 @@ go build -o sshmgr
 
 Add a Mac（Host recommend `.local`）
 
-```
+```bash
 ./sshmgr add <name> --user <user> --host <host>
 ```
 
 Connect：
 
-```
+```bash
 ./sshmgr ssh <name>
 ```
 
 Discover all hosts broadcasting SSH services and test their connectivity：
 
-```
+```bash
 ./sshmgr discover --probe --user <user> --only connectable
 ```
 
 View statistics：
 
-```
+```bash
 ./sshmgr users
 ```
 
@@ -93,7 +95,7 @@ View statistics：
 
 ## Command Sheet
 
-```
+```bash
 ./sshmgr add <name> --user <user> --host <host>
 ./sshmgr list
 ./sshmgr show <name>
@@ -104,7 +106,7 @@ View statistics：
 
 Password
 
-```
+```bash
 ./sshmgr pass set <name>
 ./sshmgr pass copy <name> [--ttl 30]
 ./sshmgr pass clear <name>
@@ -112,27 +114,27 @@ Password
 
 History/Users
 
-```
+```bash
 ./sshmgr users
 ./sshmgr history [--name <name>] [--limit <n>]
 ```
 
 Discover
 
-```
+```bash
 ./sshmgr discover [--probe] [--only connectable] [--add]
 ```
 
 Ping
 
-```
+```bash
 ./sshmgr ping all [--timeout S] [--concurrency N] [--strict]
 ./sshmgr ping <name> [--timeout S] [--strict]
 ```
 
 Scan
 
-```
+```bash
 ./sshmgr scan <subnet> [--timeout 2s] [--concurrency 64]
 ```
 
@@ -144,7 +146,7 @@ MIT
 
 ---
 
-## Last
+## Contributing
 
 You are welcomed to create PRs😋
 
