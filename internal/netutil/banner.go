@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// SSHBanner dials port 22 and returns the first SSH handshake line.
+// SHBanner 连接目标 IP 的 22 端口，并读取返回的第一行 SSH 握手信息
 func SSHBanner(ip string, timeout time.Duration) (string, error) {
 	conn, err := net.DialTimeout("tcp", net.JoinHostPort(ip, "22"), timeout)
 	if err != nil {
@@ -23,7 +23,7 @@ func SSHBanner(ip string, timeout time.Duration) (string, error) {
 	return string(buf[:n]), nil
 }
 
-// ExtractHostname attempts to find "xxx.local" in banner text.
+// ExtractHostname 尝试从 SSH Banner 文本中提取形如 "xxx.local" 的主机名。
 func ExtractHostname(banner string) string {
 	fields := strings.Fields(banner)
 	for _, f := range fields {
