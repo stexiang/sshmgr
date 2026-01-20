@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// RemoteHostname attempts to execute 'hostname' via ssh.
-// Requires user to have password/key ready; otherwise returns error.
+// RemoteHostname attempts to execute hostname via ssh.
+// Requires user to have password/key ready. otherwise returns error.
 func RemoteHostname(user, ip string) (string, error) {
 	out, err := exec.Command(
 		"ssh",
