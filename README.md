@@ -8,7 +8,7 @@ You keep using stable hostnames, and sshmgr takes care of the rest.
 
 ---
 
-## What problem does it solve? 
+## What problem does it solve?😲
 
 In a local network, especially in school or enterprise environments:
 
@@ -35,7 +35,7 @@ In a local network, especially in school or enterprise environments:
 
 ---
 
-## Key Ideas
+## Key Ideas💡
 
 **Use hostnames, not IPs**
 
@@ -47,7 +47,7 @@ In a local network, especially in school or enterprise environments:
 
 ---
 
-## Features
+## Features🔥
 
 - **Host inventory**
 
