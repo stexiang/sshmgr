@@ -2,51 +2,90 @@
 
 A macOS CLI tool to manage SSH targets on your local network.
 
+`sshmgr` helps you connect to machines without caring about changing IP
+addresses.
+You keep using stable hostnames, and sshmgr takes care of the rest.
+
+---
+
+## What problem does it solve? 
+
+In a local network, especially in school or enterprise environments:
+
+- IP addresses change frequently
+- Bonjour / mDNS may be blocked
+- You forget which machine is which
+- Password handling is annoying
+- SSH history and usage are hard to track ：（
+
+`sshmgr` is designed to make SSH simple and predictable again.
+
 ---
 
 ## Requirements
-- macOS
-- Remote Login (SSH) enabled on target machines
-- `ssh`, `dns-sd`, `pbcopy`, and `security` available (all built-in on macOS)
-- Bonjour/mDNS enabled on the LAN for discovery(optional, for discovery)
+
+* macOS
+* Remote Login (SSH) enabled on target machines
+* Built-in macOS tools:
+
+  * `ssh`
+  * `dns-sd`
+  * `pbcopy`
+  * `security`
 
 ---
 
-## Why sshmgr?
-If you connect to Macs in the same LAN, IP addresses may change.  
-`sshmgr` recommends using stable hostnames (e.g. `Mac-mini.local`). When the IP changes, you can still connect immediately because SSH uses the hostname, while sshmgr resolves and updates the last known IP for display.
+## Key Ideas
 
----
+**Use hostnames, not IPs**
 
-## Bug Bounty
+  - Recommended: `xxx.local`
+**Always resolve before connecting**
 
-If you find a bug, email me at
-sxiang36@outlook.com
-(There is no bounty :( )
+  - IP changes are detected and recorded
+
 
 ---
 
 ## Features
 
-- Host inventory: `add`, `list`, `show`, `rm`
-- IP change hint: `check` and pre-SSH resolution
-- One command to SSH: `sshmgr ssh <name>` (still connects via hostname)
-- Passwords stored in **macOS Keychain**; copy to clipboard when needed
-- Connection logs and stats: `history`, `users`
-- LAN discovery via Bonjour `_ssh._tcp`: `discover`
-- Enterprise-friendly filtering: `discover --probe` to classify `OK/AUTH/DENY/DOWN/ERR`
-- Health check: `ping` (single host or all)
-- Subnet scanner for SSH services (Works in school campus networks that block Bonjour and ARP)
+- **Host inventory**
 
-Discovery is based on Bonjour/mDNS service browsing of `_ssh._tcp`.
-In restricted networks (e.g. campus or enterprise LANs), sshmgr also provides
-an active subnet scanner to detect SSH services without relying on mDNS.
+  - Add, list, show, and remove SSH targets
+- **IP change detection**
+
+  - Resolve hostname before connecting
+  - Warn when IP changes and update records
+- **One-command SSH**
+
+  - `sshmgr ssh <name>`
+  - Always connects via hostname
+- **Password management**
+
+  - Stored securely in macOS Keychain
+  - Copy to clipboard when needed
+- **History and statistics**
+
+  - Track connection count and last access
+- **LAN discovery**
+
+  - Discover SSH-enabled machines via Bonjour (`_ssh._tcp`)
+- **Active subnet scanning**
+
+  - Scan a CIDR subnet to detect SSH services
+  - Works in restricted networks where Bonjour is unavailable
+- **Automatic reassociation**
+
+  - Rediscover known hosts after IP changes by scanning the subnet
+- **Health checks**
+
+  - Quickly test SSH reachability
 
 ---
 
 ## Installation
 
-Requires Go:
+Requires Go.
 
 ```bash
 git clone https://github.com/stexiang/sshmgr.git
@@ -57,35 +96,35 @@ go build -o sshmgr
 
 ---
 
-## Storage 
+## Storage
 
-- SQLite database (default):
-  `~/.config/sshmgr/sshmgr.db`
-- Passwords:
-  Stored securely in macOS Keychain (never written to db)
+- **Metadata**
 
+  - SQLite database:
+    `~/.config/sshmgr/sshmgr.db`
+- **Passwords**
 
-## Quickstart
+  - Stored only in macOS Keychain
+  - Never written to the database
 
-Add a Mac（Host recommend `.local`）
+---
 
-```bash
-./sshmgr add <name> --user <user> --host <host>
-```
+## Quick Start
 
-Connect：
-
-```bash
-./sshmgr ssh <name>
-```
-
-Discover all hosts broadcasting SSH services and test their connectivity：
+Add a machine
+(recommended: use `.local` hostnames):
 
 ```bash
-./sshmgr discover --probe --user <user> --only connectable
+./sshmgr add macmini --user yourname --host Mac-mini.local
 ```
 
-View statistics：
+Connect:
+
+```bash
+./sshmgr ssh macmini
+```
+
+View usage statistics:
 
 ```bash
 ./sshmgr users
@@ -93,18 +132,65 @@ View statistics：
 
 ---
 
-## Command Sheet
+## Discovery
+
+Discover machines broadcasting SSH via Bonjour:
+
+```bash
+./sshmgr discover
+```
+
+Filter connectable hosts only:
+
+```bash
+./sshmgr discover --probe --user yourname --only connectable
+```
+
+---
+
+## Subnet Scan
+
+In restricted networks where Bonjour does not work, you can actively scan a subnet:
+
+```bash
+./sshmgr scan 192.168.1.0/24
+```
+
+This detects hosts with SSH services without relying on mDNS or ARP.
+
+---
+
+## Automatic Reassociation
+
+If a host changes its IP address and can no longer be reached:
+
+```bash
+./sshmgr reassociate macmini --subnet 192.168.1.0/24
+```
+
+`sshmgr` scans the subnet and verifies remote hostnames over SSH to rediscover the same machine, then updates the stored IP.
+
+---
+
+## Command Overview
+
+Hosts:
 
 ```bash
 ./sshmgr add <name> --user <user> --host <host>
 ./sshmgr list
 ./sshmgr show <name>
 ./sshmgr rm <name>
+```
+
+Connect:
+
+```bash
 ./sshmgr ssh <name> [--dry-run]
 ./sshmgr check <name>
 ```
 
-Password
+Passwords:
 
 ```bash
 ./sshmgr pass set <name>
@@ -112,35 +198,36 @@ Password
 ./sshmgr pass clear <name>
 ```
 
-History/Users
+History and stats:
 
 ```bash
 ./sshmgr users
 ./sshmgr history [--name <name>] [--limit <n>]
 ```
 
-Discover
+Discovery and scanning:
 
 ```bash
 ./sshmgr discover [--probe] [--only connectable] [--add]
+./sshmgr scan <subnet>
 ```
 
-Ping
+Reassociation:
 
 ```bash
-./sshmgr ping all [--timeout S] [--concurrency N] [--strict]
-./sshmgr ping <name> [--timeout S] [--strict]
+./sshmgr reassociate <name> --subnet <cidr>
 ```
 
-Scan
+Health checks:
 
 ```bash
-./sshmgr scan <subnet> [--timeout 2s] [--concurrency 64]
+./sshmgr ping all
+./sshmgr ping <name>
 ```
 
 ---
 
-## License 
+## License
 
 MIT
 
@@ -148,5 +235,4 @@ MIT
 
 ## Contributing
 
-You are welcomed to create PRs😋
-
+Issues and pull requests are welcome😋
