@@ -88,7 +88,7 @@ In a local network, especially in school or enterprise environments:
 ### One-line install (recommended)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/stexiang/sshmgr/refs/heads/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/stexiang/sshmgr/main/install.sh | bash
 ```
 
 The installer:
@@ -101,7 +101,13 @@ Optional environment variables:
 
 ```bash
 SSHMGR_VERSION=v0.1.0 SSHMGR_INSTALL_DIR="$HOME/.local/bin" \
-curl -fsSL https://raw.githubusercontent.com/stexiang/sshmgr/refs/heads/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/stexiang/sshmgr/main/install.sh | bash
+```
+
+If your network has stale cache, use:
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/stexiang/sshmgr/main/install.sh?ts=$(date +%s)" | bash
 ```
 
 ### Build from source manually
