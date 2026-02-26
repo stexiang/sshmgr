@@ -85,6 +85,27 @@ In a local network, especially in school or enterprise environments:
 
 ## Installation
 
+### One-line install (recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/stexiang/sshmgr/main/install.sh | bash
+```
+
+The installer:
+
+- Tries to download a matching binary from GitHub Releases first
+- Falls back to source build automatically when no release asset is found
+- Installs to `/usr/local/bin` (or `~/.local/bin` if sudo is unavailable)
+
+Optional environment variables:
+
+```bash
+SSHMGR_VERSION=v0.1.0 SSHMGR_INSTALL_DIR="$HOME/.local/bin" \
+curl -fsSL https://raw.githubusercontent.com/stexiang/sshmgr/main/install.sh | bash
+```
+
+### Build from source manually
+
 Requires Go.
 
 ```bash
