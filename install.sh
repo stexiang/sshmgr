@@ -139,12 +139,12 @@ try_download_release() {
   base_url="$(release_base_url)"
   build_asset_candidates
 
+  log "Checking GitHub release assets..."
   for asset in "${ASSET_CANDIDATES[@]}"; do
     url="${base_url}/${asset}"
     archive="${TMP_DIR}/${asset}"
 
-    log "Trying release asset: ${asset}"
-    if ! curl -fsSL --retry 2 --connect-timeout 10 -o "$archive" "$url"; then
+    if ! curl -fsL --retry 2 --connect-timeout 10 -o "$archive" "$url" >/dev/null 2>&1; then
       continue
     fi
 
@@ -181,6 +181,7 @@ try_download_release() {
     return 0
   done
 
+  log "No matching release asset found; falling back to source build."
   return 1
 }
 
