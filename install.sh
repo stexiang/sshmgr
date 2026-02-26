@@ -10,6 +10,9 @@ USE_SUDO=""
 TMP_DIR=""
 CURRENT_STEP=0
 TOTAL_STEPS=7
+IS_TTY=0
+ACTIVE_STATUS=0
+ACTIVE_STEP_TEXT=""
 
 C_RESET=""
 C_INFO=""
@@ -19,7 +22,9 @@ C_SUCCESS=""
 C_DIM=""
 
 setup_ui() {
-  if [ ! -t 1 ]; then
+  if [ -t 1 ]; then
+    IS_TTY=1
+  else
     return
   fi
 
@@ -42,20 +47,31 @@ setup_ui() {
 }
 
 log() {
+  clear_status_line
   printf '%b[sshmgr-install]%b %s\n' "$C_INFO" "$C_RESET" "$*"
 }
 
 warn() {
+  clear_status_line
   printf '%b[sshmgr-install] WARN:%b %s\n' "$C_WARN" "$C_RESET" "$*" >&2
 }
 
 success() {
+  clear_status_line
   printf '%b[sshmgr-install] OK:%b %s\n' "$C_SUCCESS" "$C_RESET" "$*"
 }
 
 fatal() {
+  clear_status_line
   printf '%b[sshmgr-install] ERROR:%b %s\n' "$C_ERROR" "$C_RESET" "$*" >&2
   exit 1
+}
+
+clear_status_line() {
+  if [ "$IS_TTY" -eq 1 ] && [ "$ACTIVE_STATUS" -eq 1 ]; then
+    printf '\r\033[K'
+    ACTIVE_STATUS=0
+  fi
 }
 
 render_step_bar() {
@@ -70,9 +86,19 @@ render_step_bar() {
   printf '[%s%s] %d/%d' "$bar_filled" "$bar_empty" "$CURRENT_STEP" "$TOTAL_STEPS"
 }
 
+render_active_step_line() {
+  printf '\r%b[sshmgr-install]%b %s %s' "$C_INFO" "$C_RESET" "$(render_step_bar)" "$ACTIVE_STEP_TEXT"
+}
+
 step() {
   CURRENT_STEP=$((CURRENT_STEP + 1))
-  log "$(render_step_bar) $*"
+  ACTIVE_STEP_TEXT="$*"
+  if [ "$IS_TTY" -eq 1 ]; then
+    ACTIVE_STATUS=1
+    render_active_step_line
+  else
+    log "$(render_step_bar) $ACTIVE_STEP_TEXT"
+  fi
 }
 
 run_with_spinner() {
@@ -111,7 +137,9 @@ run_with_spinner() {
 
   if [ "$status" -eq 0 ]; then
     printf '\r\033[K'
-    log "${message} done."
+    if [ "$ACTIVE_STATUS" -eq 1 ]; then
+      render_active_step_line
+    fi
     return 0
   fi
 
@@ -124,6 +152,7 @@ run_with_spinner() {
 }
 
 show_banner() {
+  clear_status_line
   log "----------------------------------------"
   log "sshmgr installer"
   log "Repo: ${REPO}"
@@ -245,7 +274,7 @@ find_executable() {
 
 try_download_release() {
   if [ "${SSHMGR_SKIP_RELEASE:-0}" = "1" ]; then
-    log "Skipping release lookup (SSHMGR_SKIP_RELEASE=1)."
+    warn "Skipping release lookup (SSHMGR_SKIP_RELEASE=1); building from source."
     return 1
   fi
 
@@ -253,7 +282,6 @@ try_download_release() {
   base_url="$(release_base_url)"
   build_asset_candidates
 
-  log "Checking GitHub release assets for ${OS}/${ARCH}..."
   for asset in "${ASSET_CANDIDATES[@]}"; do
     url="${base_url}/${asset}"
     archive="${TMP_DIR}/${asset}"
@@ -304,7 +332,7 @@ build_from_source() {
   need_cmd go
 
   local src_dir="${TMP_DIR}/src"
-  log "Building from source. This may take a little while..."
+  warn "No release binary for ${OS}/${ARCH}; building from source."
 
   run_with_spinner "Cloning ${REPO}" \
     git clone --depth 1 "https://github.com/${REPO}.git" "$src_dir" \
@@ -372,11 +400,9 @@ main() {
 
   step "Detecting platform"
   detect_platform
-  log "Detected: ${OS}/${ARCH_RAW}"
 
   step "Selecting install directory"
   pick_install_dir
-  log "Install dir: ${INSTALL_DIR}"
   if [ -n "$USE_SUDO" ]; then
     warn "You may be prompted for your sudo password."
   fi
