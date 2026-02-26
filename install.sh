@@ -8,18 +8,127 @@ DEFAULT_INSTALL_DIR="/usr/local/bin"
 INSTALL_DIR="${SSHMGR_INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
 USE_SUDO=""
 TMP_DIR=""
+CURRENT_STEP=0
+TOTAL_STEPS=7
+
+C_RESET=""
+C_INFO=""
+C_WARN=""
+C_ERROR=""
+C_SUCCESS=""
+C_DIM=""
+
+setup_ui() {
+  if [ ! -t 1 ]; then
+    return
+  fi
+
+  if ! command -v tput >/dev/null 2>&1; then
+    return
+  fi
+
+  local colors
+  colors="$(tput colors 2>/dev/null || echo 0)"
+  if [ "$colors" -lt 8 ]; then
+    return
+  fi
+
+  C_RESET="$(tput sgr0)"
+  C_INFO="$(tput setaf 6)"
+  C_WARN="$(tput setaf 3)"
+  C_ERROR="$(tput setaf 1)"
+  C_SUCCESS="$(tput setaf 2)"
+  C_DIM="$(tput dim)"
+}
 
 log() {
-  printf '[sshmgr-install] %s\n' "$*"
+  printf '%b[sshmgr-install]%b %s\n' "$C_INFO" "$C_RESET" "$*"
 }
 
 warn() {
-  printf '[sshmgr-install] WARN: %s\n' "$*" >&2
+  printf '%b[sshmgr-install] WARN:%b %s\n' "$C_WARN" "$C_RESET" "$*" >&2
+}
+
+success() {
+  printf '%b[sshmgr-install] OK:%b %s\n' "$C_SUCCESS" "$C_RESET" "$*"
 }
 
 fatal() {
-  printf '[sshmgr-install] ERROR: %s\n' "$*" >&2
+  printf '%b[sshmgr-install] ERROR:%b %s\n' "$C_ERROR" "$C_RESET" "$*" >&2
   exit 1
+}
+
+render_step_bar() {
+  local width=24
+  local filled=$((CURRENT_STEP * width / TOTAL_STEPS))
+  local empty=$((width - filled))
+  local bar_filled bar_empty
+
+  bar_filled="$(printf '%*s' "$filled" '' | tr ' ' '#')"
+  bar_empty="$(printf '%*s' "$empty" '' | tr ' ' '-')"
+
+  printf '[%s%s] %d/%d' "$bar_filled" "$bar_empty" "$CURRENT_STEP" "$TOTAL_STEPS"
+}
+
+step() {
+  CURRENT_STEP=$((CURRENT_STEP + 1))
+  log "$(render_step_bar) $*"
+}
+
+run_with_spinner() {
+  local message="$1"
+  shift
+
+  if [ ! -t 1 ] || [ "${SSHMGR_NO_SPINNER:-0}" = "1" ]; then
+    local status
+    if "$@"; then
+      return 0
+    else
+      status=$?
+      return "$status"
+    fi
+  fi
+
+  local spin='|/-\\'
+  local i=0
+  local output_file="${TMP_DIR}/cmd-${RANDOM}.log"
+
+  "$@" >"$output_file" 2>&1 &
+  local pid=$!
+
+  while kill -0 "$pid" 2>/dev/null; do
+    i=$(((i + 1) % 4))
+    printf '\r%b[sshmgr-install]%b %s %s' "$C_DIM" "$C_RESET" "$message" "${spin:$i:1}"
+    sleep 0.12
+  done
+
+  local status
+  if wait "$pid"; then
+    status=0
+  else
+    status=$?
+  fi
+
+  if [ "$status" -eq 0 ]; then
+    printf '\r\033[K'
+    log "${message} done."
+    return 0
+  fi
+
+  printf '\r\033[K' >&2
+  warn "${message} failed."
+  if [ -s "$output_file" ]; then
+    tail -n 30 "$output_file" >&2
+  fi
+  return "$status"
+}
+
+show_banner() {
+  log "----------------------------------------"
+  log "sshmgr installer"
+  log "Repo: ${REPO}"
+  log "Version: ${VERSION}"
+  log "----------------------------------------"
 }
 
 need_cmd() {
@@ -135,11 +244,16 @@ find_executable() {
 }
 
 try_download_release() {
+  if [ "${SSHMGR_SKIP_RELEASE:-0}" = "1" ]; then
+    log "Skipping release lookup (SSHMGR_SKIP_RELEASE=1)."
+    return 1
+  fi
+
   local base_url asset url archive extract_dir found_bin
   base_url="$(release_base_url)"
   build_asset_candidates
 
-  log "Checking GitHub release assets..."
+  log "Checking GitHub release assets for ${OS}/${ARCH}..."
   for asset in "${ASSET_CANDIDATES[@]}"; do
     url="${base_url}/${asset}"
     archive="${TMP_DIR}/${asset}"
@@ -177,11 +291,11 @@ try_download_release() {
 
     chmod +x "$found_bin"
     RELEASE_BIN="$found_bin"
-    log "Downloaded release binary from ${asset}"
+    success "Using prebuilt release asset: ${asset}"
     return 0
   done
 
-  log "No matching release asset found; falling back to source build."
+  warn "No matching release asset found; switching to source build."
   return 1
 }
 
@@ -190,11 +304,14 @@ build_from_source() {
   need_cmd go
 
   local src_dir="${TMP_DIR}/src"
-  log "Building from source (release asset not found)..."
-  git clone --depth 1 "https://github.com/${REPO}.git" "$src_dir" >/dev/null 2>&1 \
+  log "Building from source. This may take a little while..."
+
+  run_with_spinner "Cloning ${REPO}" \
+    git clone --depth 1 "https://github.com/${REPO}.git" "$src_dir" \
     || fatal "Failed to clone repository: ${REPO}"
 
   if [ "$VERSION" != "latest" ]; then
+    log "Checking out ${VERSION}..."
     (
       cd "$src_dir"
       git fetch --depth 1 origin "refs/tags/${VERSION}:refs/tags/${VERSION}" >/dev/null 2>&1
@@ -204,11 +321,13 @@ build_from_source() {
 
   (
     cd "$src_dir"
-    go build -o "${TMP_DIR}/${BINARY_NAME}" .
+    run_with_spinner "Compiling ${BINARY_NAME}" \
+      go build -o "${TMP_DIR}/${BINARY_NAME}" .
   ) || fatal "go build failed"
 
   SOURCE_BIN="${TMP_DIR}/${BINARY_NAME}"
   chmod +x "$SOURCE_BIN"
+  success "Source build completed."
 }
 
 install_binary() {
@@ -229,7 +348,7 @@ install_binary() {
     install -m 0755 "$src_bin" "$target"
   fi
 
-  log "Installed to ${target}"
+  success "Installed to ${target}"
 }
 
 post_install_hint() {
@@ -238,24 +357,47 @@ post_install_hint() {
     printf '  export PATH="%s:$PATH"\n' "$INSTALL_DIR"
   fi
 
-  log "Done. Run: sshmgr --help"
+  log "Quick start:"
+  printf '  %s\n' "sshmgr --help"
+  printf '  %s\n' "sshmgr add myhost --user <user> --host <host>.local"
+  printf '  %s\n' "sshmgr ssh myhost"
 }
 
 main() {
+  setup_ui
+  show_banner
+
+  step "Checking prerequisites"
   need_cmd curl
+
+  step "Detecting platform"
   detect_platform
+  log "Detected: ${OS}/${ARCH_RAW}"
+
+  step "Selecting install directory"
   pick_install_dir
-
-  TMP_DIR="$(mktemp -d)"
-
-  if try_download_release; then
-    install_binary "$RELEASE_BIN"
-  else
-    build_from_source
-    install_binary "$SOURCE_BIN"
+  log "Install dir: ${INSTALL_DIR}"
+  if [ -n "$USE_SUDO" ]; then
+    warn "You may be prompted for your sudo password."
   fi
 
+  step "Preparing temporary workspace"
+  TMP_DIR="$(mktemp -d)"
+
+  step "Acquiring binary"
+  if try_download_release; then
+    INSTALL_SOURCE_BIN="$RELEASE_BIN"
+  else
+    build_from_source
+    INSTALL_SOURCE_BIN="$SOURCE_BIN"
+  fi
+
+  step "Installing sshmgr"
+  install_binary "$INSTALL_SOURCE_BIN"
+
+  step "Finalizing"
   post_install_hint
+  success "Installation completed."
 }
 
 main "$@"
