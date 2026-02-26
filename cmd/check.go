@@ -13,7 +13,7 @@ import (
 
 var checkCmd = &cobra.Command{
 	Use:   "check <name>",
-	Short: "解析 host 并提示 IP 是否变化（更新 last_ip）",
+	Short: "Resolve host and report whether IP changed (updates last_ip)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]

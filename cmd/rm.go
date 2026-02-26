@@ -8,7 +8,7 @@ import (
 
 var rmCmd = &cobra.Command{
 	Use:   "rm <name>",
-	Short: "删除一条主机记录（不会自动删 Keychain 密码）",
+	Short: "Remove one host entry (does not delete Keychain password)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]

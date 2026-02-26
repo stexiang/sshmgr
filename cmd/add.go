@@ -18,7 +18,7 @@ var (
 
 var addCmd = &cobra.Command{
 	Use:   "add <name>",
-	Short: "添加一台 Mac 目标（建议 host 用 xxx.local）",
+	Short: "Add a Mac target (recommended host: xxx.local)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]

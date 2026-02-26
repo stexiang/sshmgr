@@ -18,7 +18,7 @@ var sshDryRun bool
 
 var sshCmd = &cobra.Command{
 	Use:   "ssh <name>",
-	Short: "连接目标（连接前解析并提示 IP 变化，同时写入连接历史）",
+	Short: "Connect to target (resolves host, reports IP changes, writes history)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]

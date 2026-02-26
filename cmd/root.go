@@ -35,8 +35,8 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:   "sshmgr",
-	Short: "管理局域网 Mac 的 SSH 条目、Keychain 密码，并提示 IP 变更",
-	Long:  "sshmgr：管理 SSH 目标（推荐 host 为 xxx.local），连接前解析并提示 IP 变化；密码存 Keychain，仅支持复制。\n",
+	Short: "Manage LAN Mac SSH entries, Keychain passwords, and IP-change hints",
+	Long:  "sshmgr manages SSH targets (recommended host: xxx.local), resolves hostnames before connect, warns on IP changes, and stores passwords in Keychain (copy-only).\n",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if DB != nil {
 			return nil

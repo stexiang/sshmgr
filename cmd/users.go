@@ -12,7 +12,7 @@ import (
 
 var usersCmd = &cobra.Command{
 	Use:   "users",
-	Short: "按条目列出：name host ip count last pw",
+	Short: "List entries as: name host ip count last pw",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		rows, err := DB.Query(`
 SELECT

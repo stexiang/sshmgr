@@ -41,7 +41,7 @@ type pingResult struct {
 
 var pingCmd = &cobra.Command{
 	Use:   "ping <name|all>",
-	Short: "健康检查：解析 host 并测试 TCP 连接到端口（默认 22）",
+	Short: "Health check: resolve host and test TCP connectivity (default port 22)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if pingTimeout <= 0 {

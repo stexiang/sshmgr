@@ -8,7 +8,7 @@ import (
 
 var showCmd = &cobra.Command{
 	Use:   "show <name>",
-	Short: "查看某条主机详情",
+	Short: "Show details of one host entry",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]

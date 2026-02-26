@@ -49,7 +49,7 @@ type discFound struct {
 
 var discoverCmd = &cobra.Command{
 	Use:   "discover",
-	Short: "发现局域网中开启 SSH 的设备（Bonjour: _ssh._tcp）",
+	Short: "Discover SSH-enabled devices on the LAN (Bonjour: _ssh._tcp)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if discoverTimeout <= 0 {
 			discoverTimeout = 3

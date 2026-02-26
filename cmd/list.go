@@ -12,7 +12,7 @@ import (
 
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "列出所有主机条目",
+	Short: "List all host entries",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		rows, err := DB.Query(`SELECT name,user,host,port,last_ip,last_checked_at,has_secret FROM hosts ORDER BY name`)
 		if err != nil {

@@ -17,7 +17,7 @@ var (
 
 var historyCmd = &cobra.Command{
 	Use:   "history",
-	Short: "查看连接历史（默认最近 20 条）",
+	Short: "Show connection history (latest 20 by default)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if histLimit <= 0 {
 			histLimit = 20

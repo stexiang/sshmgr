@@ -15,12 +15,12 @@ var passTTL int
 
 var passCmd = &cobra.Command{
 	Use:   "pass",
-	Short: "管理 Keychain 中保存的密码（只支持复制，不默认明文显示）",
+	Short: "Manage passwords in Keychain (copy-only, no plaintext by default)",
 }
 
 var passSetCmd = &cobra.Command{
 	Use:   "set <name>",
-	Short: "设置/更新密码到 Keychain",
+	Short: "Set or update password in Keychain",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
@@ -50,7 +50,7 @@ var passSetCmd = &cobra.Command{
 
 var passCopyCmd = &cobra.Command{
 	Use:   "copy <name>",
-	Short: "复制密码到剪贴板（可选 --ttl 自动清空）",
+	Short: "Copy password to clipboard (optional --ttl auto-clear)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
@@ -74,7 +74,7 @@ var passCopyCmd = &cobra.Command{
 
 var passClearCmd = &cobra.Command{
 	Use:   "clear <name>",
-	Short: "从 Keychain 删除密码",
+	Short: "Delete password from Keychain",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
