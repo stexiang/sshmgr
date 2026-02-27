@@ -1,87 +1,29 @@
 # sshmgr
 
-A macOS CLI tool to manage SSH targets on your local network.
+A macOS CLI to manage SSH targets on local networks.
 
-`sshmgr` helps you connect to machines without caring about changing IP
-addresses.
-You keep using stable hostnames, and sshmgr takes care of the rest.
+`sshmgr` lets you connect with stable hostnames (for example `macmini.local`) instead of chasing changing IPs.
 
----
+## Why sshmgr
 
-## What problem does it solve?😲
+In campus/office/home LANs, SSH workflows are often painful:
 
-In a local network, especially in school or enterprise environments:
-
-- IP addresses change frequently
-- Bonjour / mDNS may be blocked
-- You forget which machine is which
+- DHCP changes IP addresses frequently
+- Bonjour/mDNS may be partially blocked
 - Password handling is annoying
-- SSH history and usage are hard to track ：（
+- Connection history is hard to track
 
-`sshmgr` is designed to make SSH simple and predictable again.
-
----
+`sshmgr` keeps host records, resolves hostnames before connect, warns about IP changes, and stores passwords in macOS Keychain.
 
 ## Requirements
 
-* macOS
-* Remote Login (SSH) enabled on target machines
-* Built-in macOS tools:
-
-  * `ssh`
-  * `dns-sd`
-  * `pbcopy`
-  * `security`
-
----
-
-## Key Ideas💡
-
-**Use hostnames, not IPs**
-
-  - Recommended: `xxx.local`
-**Always resolve before connecting**
-
-  - IP changes are detected and recorded
-
-
----
-
-## Features🔥
-
-- **Host inventory**
-
-  - Add, list, show, and remove SSH targets
-- **IP change detection**
-
-  - Resolve hostname before connecting
-  - Warn when IP changes and update records
-- **One-command SSH**
-
-  - `sshmgr ssh <name>`
-  - Always connects via hostname
-- **Password management**
-
-  - Stored securely in macOS Keychain
-  - Copy to clipboard when needed
-- **History and statistics**
-
-  - Track connection count and last access
-- **LAN discovery**
-
-  - Discover SSH-enabled machines via Bonjour (`_ssh._tcp`)
-- **Active subnet scanning**
-
-  - Scan a CIDR subnet to detect SSH services
-  - Works in restricted networks where Bonjour is unavailable
-- **Automatic reassociation**
-
-  - Rediscover known hosts after IP changes by scanning the subnet
-- **Health checks**
-
-  - Quickly test SSH reachability
-
----
+- macOS
+- SSH enabled on target hosts (Remote Login)
+- Built-in tools available:
+  - `ssh`
+  - `dns-sd`
+  - `pbcopy`
+  - `security`
 
 ## Installation
 
@@ -91,21 +33,23 @@ In a local network, especially in school or enterprise environments:
 curl -fsSL "https://raw.githubusercontent.com/stexiang/sshmgr/main/install.sh?ts=$(date +%s)" | bash
 ```
 
-The installer:
+What the installer does:
 
-- Tries to download a matching binary from GitHub Releases first
-- Falls back to source build automatically when no release asset is found
+- Tries matching GitHub Release assets first
+- Falls back to source build automatically if no asset matches
 - Installs to `/usr/local/bin` (or `~/.local/bin` if sudo is unavailable)
 
-Optional environment variables:
+### Optional installer variables
 
 ```bash
 SSHMGR_VERSION=v0.1.0 SSHMGR_INSTALL_DIR="$HOME/.local/bin" \
 curl -fsSL "https://raw.githubusercontent.com/stexiang/sshmgr/main/install.sh?ts=$(date +%s)" | bash
 ```
 
+- `SSHMGR_VERSION`: install a specific tag instead of `latest`
+- `SSHMGR_INSTALL_DIR`: override install destination
 - `SSHMGR_SKIP_RELEASE=1`: skip release probe and build from source directly
-- `SSHMGR_NO_SPINNER=1`: disable spinner animation (useful for CI logs)
+- `SSHMGR_NO_SPINNER=1`: disable spinner animation (useful in CI logs)
 
 ### Build from source manually
 
@@ -115,148 +59,114 @@ Requires Go.
 git clone https://github.com/stexiang/sshmgr.git
 cd sshmgr
 go mod tidy
-go build -o sshmgr
+go build -o sshmgr .
+./sshmgr --help
 ```
-
----
-
-## Storage
-
-- **Metadata**
-
-  - SQLite database:
-    `~/.config/sshmgr/sshmgr.db`
-- **Passwords**
-
-  - Stored only in macOS Keychain
-  - Never written to the database
-
----
 
 ## Quick Start
 
-Add a machine
-(recommended: use `.local` hostnames):
+### 1) Add a host
 
 ```bash
-./sshmgr add macmini --user yourname --host Mac-mini.local
+sshmgr add macmini --user yourname --host Mac-mini.local
 ```
 
-Connect:
+### 2) Check resolution / reachability
 
 ```bash
-./sshmgr ssh macmini
+sshmgr check macmini
+sshmgr ping macmini
 ```
 
-View usage statistics:
+### 3) Connect
 
 ```bash
-./sshmgr users
+sshmgr ssh macmini
 ```
 
----
-
-## Discovery
-
-Discover machines broadcasting SSH via Bonjour:
+### 4) Save and copy password from Keychain
 
 ```bash
-./sshmgr discover
+sshmgr pass set macmini
+sshmgr pass copy macmini --ttl 30
 ```
 
-Filter connectable hosts only:
+## Discovery, Scan, and Reassociation
+
+Discover hosts via Bonjour:
 
 ```bash
-./sshmgr discover --probe --user yourname --only connectable
+sshmgr discover
+sshmgr discover --probe --user yourname --only connectable
 ```
 
----
-
-## Subnet Scan
-
-In restricted networks where Bonjour does not work, you can actively scan a subnet:
+Scan subnet when Bonjour is unreliable:
 
 ```bash
-./sshmgr scan 192.168.1.0/24
+sshmgr scan 192.168.1.0/24
 ```
 
-This detects hosts with SSH services without relying on mDNS or ARP.
-
----
-
-## Automatic Reassociation
-
-If a host changes its IP address and can no longer be reached:
+Reassociate a host after IP changes:
 
 ```bash
-./sshmgr reassociate macmini --subnet 192.168.1.0/24
+sshmgr reassociate macmini --subnet 192.168.1.0/24
 ```
-
-`sshmgr` scans the subnet and verifies remote hostnames over SSH to rediscover the same machine, then updates the stored IP.
-
----
 
 ## Command Overview
 
-Hosts:
-
-```bash
-./sshmgr add <name> --user <user> --host <host>
-./sshmgr list
-./sshmgr show <name>
-./sshmgr rm <name>
+```text
+add         Add a Mac target (recommended host: xxx.local)
+check       Resolve host and report whether IP changed (updates last_ip)
+discover    Discover SSH-enabled devices on the LAN (Bonjour: _ssh._tcp)
+history     Show connection history (latest 20 by default)
+list        List all host entries
+pass        Manage passwords in Keychain (copy-only, no plaintext by default)
+ping        Health check: resolve host and test TCP connectivity (default port 22)
+reassociate Rediscover a host after IP change by scanning the subnet
+rm          Remove one host entry (does not delete Keychain password)
+scan        Scan subnet and detect SSH services
+show        Show details of one host entry
+ssh         Connect to target (resolves host, reports IP changes, writes history)
+users       List entries as: name host ip count last pw
 ```
 
-Connect:
+## Storage and Security
+
+- Metadata DB: `~/.config/sshmgr/sshmgr.db`
+- Passwords: macOS Keychain only
+- Passwords are not written into SQLite
+
+## Troubleshooting
+
+### Help output still shows old text
+
+You are likely running an old binary.
 
 ```bash
-./sshmgr ssh <name> [--dry-run]
-./sshmgr check <name>
+which sshmgr
+sshmgr --version
 ```
 
-Passwords:
+If needed, rebuild/reinstall:
 
 ```bash
-./sshmgr pass set <name>
-./sshmgr pass copy <name> [--ttl 30]
-./sshmgr pass clear <name>
+cd /path/to/sshmgr
+go build -o sshmgr .
+install -m 0755 sshmgr /usr/local/bin/sshmgr
 ```
 
-History and stats:
+### Installer appears stale
+
+Use the default cache-busting URL (already included in this README):
 
 ```bash
-./sshmgr users
-./sshmgr history [--name <name>] [--limit <n>]
+curl -fsSL "https://raw.githubusercontent.com/stexiang/sshmgr/main/install.sh?ts=$(date +%s)" | bash
 ```
-
-Discovery and scanning:
-
-```bash
-./sshmgr discover [--probe] [--only connectable] [--add]
-./sshmgr scan <subnet>
-```
-
-Reassociation:
-
-```bash
-./sshmgr reassociate <name> --subnet <cidr>
-```
-
-Health checks:
-
-```bash
-./sshmgr ping all
-./sshmgr ping <name>
-```
-
----
 
 ## License
 
 MIT
 
----
-
 ## Contributing
 
-Issues and pull requests are welcome😋
+Issues and PRs are welcome.
